@@ -1,0 +1,23 @@
+# Files created by pub, Dart Editor, and dart2js
+packages/
+pubspec.lock  // Except for application packages
+.project
+.buildlog
+*.js_
+*.js.deps
+*.js.map
+
+# Generated javascript
+*.dart.js
+
+# Other IDE files
+.project     
+*.iml        
+*.ipr         
+*.iws    
+.idea/      
+
+# OS garbage
+thumbs.db
+.DS_Store
+~*

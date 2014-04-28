@@ -1,0 +1,52 @@
+
+body {
+  background-color: #F8F8F8;
+  font-family: 'Open Sans', sans-serif;
+  text-align: center;
+  font-size: 10pt;
+  width: 200px;
+  padding: 0px;
+}
+
+#PassGen {
+  width: 100%;
+  background-color: #fd3;
+}
+
+h1 {
+  color: #000;
+  border: 2px outset #ccc;
+  background-color: #99c;
+  padding: 12px;
+  margin: 0px;
+}
+
+#form { 
+  padding: 8px;
+  border-left: 1px outset #ccc;
+  border-right: 1px outset #ccc;
+  border-bottom: 1px outset #ccc;
+}
+
+#symbols {
+  padding: 8px;
+  margin: 8px;
+}
+
+#submit {
+  padding: 8px;
+  margin: 8px;
+}
+
+#info {
+  background-color: #fcc;
+  margin: 8px;
+  padding: 8px;
+}
+
+#result {
+  background-color: #cfc;
+  margin: 8px;
+  padding: 8px;
+}
+

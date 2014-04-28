@@ -1,0 +1,7 @@
+name: PassGen
+description: A simple offline password generator.
+dependencies:
+  chrome: any
+  crypto: any
+transformers:
+- chrome
