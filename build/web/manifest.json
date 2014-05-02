@@ -3,11 +3,18 @@
 
   "name": "PassGen",
   "description": "A simple offline password generator",
-  "version": "0.2",
+  "version": "0.3",
 
   "browser_action": {
-    "default_icon": "icon.png",
-    "default_popup": "passgen.html"
+    "default_icon": "images/lock16.png",
+    "default_popup": "passgen.html",
+    "default_badge": "PG"
+  },
+  
+  "icons": {
+    "128": "images/lock128.png",
+    "48": "images/lock48.png",
+    "16": "images/lock16.png"
   },
   
   "permissions": [

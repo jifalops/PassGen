@@ -17,7 +17,7 @@ class PassGen {
   static const double _VERSION  = 1.0;
   static const String _KEY      = "r>b0!y@`+^dT6llD%X|9_o_GJ2}@lfnd/C68Cm0PGl~rvRX[Jr*Nji<2nXhwSeUEkd3&/.#V/^o6pC{DlxFni<'0J(7G4pJ_Jc%9U1h9PSnwYo7ZaRM[Wr*Mq#u%)br";
   static const String _ALNUM    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  static const String _CHARS    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*()`-=[]\\;',./~_+{}|:\"<>?";     
+  static const String _CHARS    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*()`-=[]\\;',./~_+{}|:\"<>?";
   
   final DivElement           _container = querySelector('#PassGen');  
   final FormElement          _form      = querySelector('#form');
