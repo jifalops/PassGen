@@ -1,5 +1,8 @@
 import 'dart:html';
 import 'package:crypto/crypto.dart';
+import 'package:cipher/cipher.dart';
+import 'dart:typed_data';
+import 'package:lawndart/lawndart.dart';
 import 'dart:convert';
 import 'package:chrome/chrome_ext.dart' as chrome;
 //import 'dart:js';
@@ -7,74 +10,146 @@ import 'package:chrome/chrome_ext.dart' as chrome;
 void main() {
   var pg = new PassGen();
   
-  //TODO this is for testing only
-//  chrome.runtime.getPlatformInfo().then((Map m) {
-//    window.alert(m.toString());
-//  });
 }
 
 class PassGen {
-  static const double _VERSION  = 1.0;
-  static const String _KEY      = "r>b0!y@`+^dT6llD%X|9_o_GJ2}@lfnd/C68Cm0PGl~rvRX[Jr*Nji<2nXhwSeUEkd3&/.#V/^o6pC{DlxFni<'0J(7G4pJ_Jc%9U1h9PSnwYo7ZaRM[Wr*Mq#u%)br";
-  static const String _ALNUM    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  static const String _CHARS    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*()`-=[]\\;',./~_+{}|:\"<>?";
+  static const int 
+      MIN_PASS_LEN = 4,
+      MAX_PASS_LEN = 32,
+      MIN_SITE_LEN = 4,
+      MAX_SITE_LEN = 64,
+      MIN_SECRET_LEN = 4,
+      MAX_SECRET_LEN = 64;
   
-  final DivElement           _container = querySelector('#PassGen');  
-  final FormElement          _form      = querySelector('#form');
-  final DivElement           _info      = querySelector('#info');
-  final CheckboxInputElement _symbols   = querySelector('#symbols');
-  final Element              _result    = querySelector('#result');
-  final TextInputElement     _site      = querySelector('#site');
-  final TextInputElement     _secret    = querySelector('#secret');
+  static const String 
+    _KEY      = "r>b0!y@`+^dT6llD%X|9_o_GJ2}@lfnd/C68Cm0PGl~rvRX[Jr*Nji<2nXhwSeUEkd3&/.#V/^o6pC{DlxFni<'0J(7G4pJ_Jc%9U1h9PSnwYo7ZaRM[Wr*Mq#u%)br",
+    _ALNUM    = "abcdefghijklmopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ0123456789",
+    _CHARS    = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*()`-=[];',./~_+{}|:\"<>?";
+  
+  final DivElement           _container  = querySelector('#PassGen');  
+  final FormElement          _form       = querySelector('#form');
+  final DivElement           _error      = querySelector('#info');
+  final CheckboxInputElement _symbols    = querySelector('#symbols');
+  final Element              _result     = querySelector('#result');
+  final TextInputElement     _site       = querySelector('#site');
+  final TextInputElement     _secret     = querySelector('#secret');
+  final SelectElement        _passLength = querySelector('#passLen');
+  
+  final Store _options = new Store('passgen', 'options');
+  final String _passLenKey = 'passLen';
+  final String _useSymbolsKey = 'useSymbols';
+
+  int _passLen = 16;
   
   PassGen() {
-    _info.hidden = true;
+    _error.hidden = true;
     _result.hidden = true;
     
+    _options.open()
+      .then((_) => _options.getByKey(_passLenKey))
+      .then((value) => _passLen = int.parse(value))
+      .then((_) => _addLengthOptions())
+      .then((_) => _options.getByKey(_useSymbolsKey))
+      .then((value) => _symbols.checked = value == true.toString());
+    
+    //print(_passLen);
+    //print(_symbols.checked);
+    
+    _prefillWebsite();
+    //_addLengthOptions();
+    
+    _form.onSubmit.listen(generatePass);
+    _secret.focus();
+  }
+  
+  void _saveSecret() {
+    var bytes = new Uint8List.fromList(UTF8.encode(_secret.value));
+    var cipher = new BlockCipher("AES")  
+      ..init(true, new KeyParameter(bytes));
+    var cipherText = new Uint8List(cipher.blockSize);
+    cipher.processBlock(bytes, 0, cipherText, 0);
+    String encrypted = UTF8.decode(cipherText.toList());
+    //TODO give option to save?
+    // what about xss?
+  }
+ 
+  
+  void _prefillWebsite() {
     try {
       var params = new chrome.TabsQueryParams()
         ..active = true
         ..currentWindow = true;
       chrome.tabs.query(params).then((tabs) {
         if (tabs.length != 1) {
-          _info.text = "Found " + tabs.length.toString()
+          _error.text = "Found " + tabs.length.toString()
             + "active tabs (expected 1).";
         }
         _site.value = Uri.parse(tabs[0].url).host;
+        print("x" +_site.value);
       });
     } catch(e) {
-      _info.text = "Unable to get current website.";
+      _error.text = "Unable to get current website.";
+      _error.hidden = false;
     }
-    
-    _form.onSubmit.listen(generate);
-    
   }
   
-  void generate(Event e) {
+  void _addLengthOptions() {
+    String s;
+    for (int i=MIN_PASS_LEN; i<=MAX_PASS_LEN; ++i) {
+      s = i.toString();
+      _passLength.children.add(
+          new OptionElement()
+          ..value=s
+          ..text=s
+          ..selected=(i==_passLen));
+    }
+  }
+  
+  //TODO allow multiple errors on different lines
+  void checkInputs() {
+    _error.text = '';
+    
+    if (_site.value.length < MIN_SITE_LEN /*|| !site.contains('\.')*/) {
+      _error.text = "Website too short.";
+    } else if (_site.value.length > MAX_SITE_LEN) {
+      _error.text = "Website too long."; 
+    }
+    
+    if (_secret.value.length < MIN_SECRET_LEN) {
+      _error.text = "Secret too short.";
+    } else if (_secret.value.length > MAX_SECRET_LEN) {
+      _error.text = "Secret too long."; 
+    }
+    
+    if (int.parse(_passLength.value) < MIN_PASS_LEN) {
+      _error.text = "Length too short.";
+    } else if (_secret.value.length > MAX_SECRET_LEN) {
+      _error.text = "Length too long."; 
+    }
+  }
+  
+  void generatePass(Event e) {
     e.preventDefault();
-    _info.hidden = true;
+    _error.hidden = true;
     _result.hidden = true;
     
-    String site = _site.value;
-    String secret = _secret.value;
+    _options.open()
+      .then((_) => _options.nuke())
+      .then((_) => _options.save(_passLength.value, _passLenKey))
+      .then((_) => _options.save(_symbols.checked.toString(), _useSymbolsKey));
     
-    _info.text = '';
-    if (site.length < 4 /*|| !site.contains('\.')*/) {
-      _info.text = "Website too short.";
-      _info.hidden = false;
-      return;      
-    }
-    if (secret.length < 4) {
-      _info.text = "Secret too short.";
-      _info.hidden = false;
+    checkInputs();
+    if (_error.text.length > 0) {
+      _error.hidden = false;
       return;
     }
     
+    
     SHA256 hash = new SHA256(); 
-    hash.add(UTF8.encode(site));
+    hash.add(UTF8.encode(_site.value));
     hash.add(UTF8.encode(_KEY));
-    hash.add(UTF8.encode(secret));
-    _result.text = _hashToChars(hash.close()).join();
+    hash.add(UTF8.encode(_secret.value));
+    _result.text = _hashToString(hash.close(), int.parse(_passLength.value)).join();
     
     if (_result.text.length > 0) {
       _result.hidden = false;
@@ -82,24 +157,27 @@ class PassGen {
     }
   }
   
-  
-  List<String> _hashToChars(List<int> hash) {   
+  List<String> _hashToString(List<int> hash, int len) {   
     List<String> chars = _symbols.checked ? _CHARS.split('') : _ALNUM.split('');    
-    List<int> indexes = _splitHash(hash, chars.length);
+    List<int> indexes = _reduceHash(hash, len,  chars.length);
     List<String> result = new List<String>(indexes.length);
     for (int i=0; i<indexes.length; ++i) {
       result[i] = chars[indexes[i]];
     }
     return result;
   }
-
-  List<int> _splitHash(List<int> hash, int numChars) {
-    int mid =  hash.length ~/ 2;
-    List<int> split = new List<int>(mid);  
-    for (int i=0; i<mid; ++i) {
-      split[i] = (hash[i] + hash[mid+i]) % numChars;
+  
+  List<int> _reduceHash(List<int> hash, int len, int maxValue) {
+    List<int> newHash = new List<int>(len);
+    int value;
+    for (int i=0; i<len; ++i) {
+      value = 0;
+      for (int j=0; j<hash.length-i; j+=len) {
+        value += hash[i + j];
+      }
+      newHash[i] = value % maxValue;
     }
-    return split;
+    return newHash;
   }
 }
 
