@@ -33,11 +33,14 @@ class PassGen {
   final Element              _result     = querySelector('#result');
   final TextInputElement     _site       = querySelector('#site');
   final TextInputElement     _secret     = querySelector('#secret');
+  final CheckboxInputElement _saveSecret = querySelector('#saveSecret');
   final SelectElement        _passLength = querySelector('#passLen');
   
   final Store _options = new Store('passgen', 'options');
   final String _passLenKey = 'passLen';
   final String _useSymbolsKey = 'useSymbols';
+  final String _secretKey = 'secretKey';
+  final String _saveSecretKey = 'saveSecretKey';
 
   int _passLen = 16;
   
@@ -50,7 +53,16 @@ class PassGen {
       .then((value) => _passLen = int.parse(value))
       .then((_) => _addLengthOptions())
       .then((_) => _options.getByKey(_useSymbolsKey))
-      .then((value) => _symbols.checked = value == true.toString());
+      .then((value) => _symbols.checked = value == true.toString())
+      .then((_) => _options.getByKey(_saveSecretKey))
+      .then((value) {
+        _saveSecret.checked = value == true.toString();
+        if (value == true.toString() && _options.isOpen) {
+          _options.getByKey(_secretKey)
+            .then((value) => _secret.value = value);
+        }
+      });
+    
     
     //print(_passLen);
     //print(_symbols.checked);
@@ -62,15 +74,19 @@ class PassGen {
     _secret.focus();
   }
   
-  void _saveSecret() {
-    var bytes = new Uint8List.fromList(UTF8.encode(_secret.value));
+  String _makeSecret() {
+    String secret = _secret.value;
+    
+    // Not saving the last two characters!
+    secret = secret.substring(0, secret.length - 2);
+    
+    var bytes = new Uint8List.fromList(UTF8.encode(secret));
+    var key = new Uint8List.fromList(UTF8.encode(_KEY));
     var cipher = new BlockCipher("AES")  
-      ..init(true, new KeyParameter(bytes));
+      ..init(true, new KeyParameter(key));
     var cipherText = new Uint8List(cipher.blockSize);
     cipher.processBlock(bytes, 0, cipherText, 0);
-    String encrypted = UTF8.decode(cipherText.toList());
-    //TODO give option to save?
-    // what about xss?
+    return UTF8.decode(cipherText.toList());
   }
  
   
@@ -136,7 +152,13 @@ class PassGen {
     _options.open()
       .then((_) => _options.nuke())
       .then((_) => _options.save(_passLength.value, _passLenKey))
-      .then((_) => _options.save(_symbols.checked.toString(), _useSymbolsKey));
+      .then((_) => _options.save(_saveSecret.checked.toString(), _saveSecretKey))
+      .then((_) => _options.save(_symbols.checked.toString(), _useSymbolsKey)
+      .then((_) {
+        if (_saveSecret.checked && _options.isOpen) {
+          _options.save(_makeSecret(), _secretKey);
+        }
+      }));
     
     checkInputs();
     if (_error.text.length > 0) {
