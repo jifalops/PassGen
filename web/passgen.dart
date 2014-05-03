@@ -166,11 +166,11 @@ class PassGen {
       return;
     }
     
-    
+    // TODO use dbcrypt?
     SHA256 hash = new SHA256(); 
     hash.add(UTF8.encode(_site.value));
-    hash.add(UTF8.encode(_KEY));
     hash.add(UTF8.encode(_secret.value));
+    hash.add(UTF8.encode(_KEY));
     _result.text = _hashToString(hash.close(), int.parse(_passLength.value)).join();
     
     if (_result.text.length > 0) {
