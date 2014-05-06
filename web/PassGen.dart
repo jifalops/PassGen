@@ -5,15 +5,28 @@ import 'dart:typed_data';
 import 'dart:convert';
 
 class PassGen {
+  static const int
+    CHAR_LOWER   = 0x1,
+    CHAR_UPPER   = 0x2,
+    CHAR_NUMBERS = 0x4,
+    CHAR_SYMBOLS = 0x8,
+    CHAR_LETTERS = 0x3,
+    CHAR_ALNUM   = 0x7,
+    CHAR_ALL     = 0xF;
+    
   static const String
-    ALNUM  = "abcdefghijklmopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ0123456789",
-    CHARS  = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*()`-=[];',./~_+{}|:\"<>?",
+    _LOWER   = 'abcdefghijkmnopqrstuvwxyz',  // skip l
+    _UPPER   = 'ABCDEFGHJKLMNOPQRSTUVWXYZ',  // skip I
+    _NUMBERS = '0123456789',
+    _SYMBOLS = r'!@#$%^&*()`-=[];,./~_+{}|:"<>?', // skip \' (backslash and apostrophe)
+
     _PEPPER = "r>b0!y@`+^dT6llD%X|9_o_GJ2}@lfnd/C68Cm0PGl~rvRX[Jr*Nji<2nXhwSeUEkd3&/.#V/^o6pC{DlxFni<'0J(7G4pJ_Jc%9U1h9PSnwYo7ZaRM[Wr*Mq#u%)br",
     _CRYPTO = "Q%3NLoEHM6ZxKOXz>@o]f8t;+=17@h?#";
 
-  PassGen() {
-    
-  }
+  static final String
+    _LETTERS = _LOWER + _UPPER,
+    _ALNUM   = _LETTERS + _NUMBERS,
+    _CHARS   = _ALNUM + _SYMBOLS;
   
   String cipher(String text, bool encrypt, [String key = _CRYPTO]) {    
     var bytes = encrypt
@@ -63,32 +76,88 @@ class PassGen {
     return hash.close();
   }
   
-  String convertHash(List<int> hash, int len, List<String> chars) {
-    final int hashLen = hash.length;
-    final int charsLen = chars.length;
+  
+  String convertHash(List<int> hash, int len, int charTypes) {
+    int hashLen = hash.length;    
+    var result = new StringBuffer();
+    var chars = _getChars(charTypes);
     
-    // Reduce hash to the given length with 
-    // values refering to indices of the char list.
-    List<int> indexes = new List<int>(len);
+    var pref = _getCharPrefs(charTypes);
+    
     int value;
+    var tmpChars;
     for (int i=0; i<len; ++i) {
       value = 0;
       for (int j=0; j<hashLen-i; j+=len) {
         value += hash[i + j];
       }
-      indexes[i] = value % charsLen;
+      
+      if (i < pref.length && pref[i] > 0) {
+        tmpChars = _getChars(pref[i]);
+        result.write(tmpChars[value % tmpChars.length]);
+      } else {
+        result.write(chars[value % chars.length]);
+      }      
     }
     
-    // Convert the new hash to a string
-    List<String> result = new List<String>(len);
-    for (int i=0; i<len; ++i) {
-      result[i] = chars[indexes[i]];
-    }
-    return result.join();
+    return result.toString();
   }
- 
-
-  String hashAndConvert(String text, int len, List<String> chars, [String salt = _PEPPER]) {
-    return convertHash(hash(text, salt), len, chars);
+  
+  String hashAndConvert(String text, int len, int charTypes, [String salt = _PEPPER]) {
+    return convertHash(hash(text, salt), len, charTypes);
+  }
+  
+  String _getChars(int type) {
+    String chars = '';
+    if (type & CHAR_LOWER > 0) chars += _LOWER;
+    if (type & CHAR_UPPER > 0) chars += _UPPER;
+    if (type & CHAR_NUMBERS > 0) chars += _NUMBERS;
+    if (type & CHAR_SYMBOLS > 0) chars += _SYMBOLS;
+    return chars;
+  }
+  
+  List<int> _getCharPrefs(int type) {
+    var pref = [0];
+    switch (type) {
+      case CHAR_ALL:
+        pref = [CHAR_LOWER, CHAR_NUMBERS, CHAR_UPPER, CHAR_SYMBOLS];
+        break;
+      case CHAR_ALNUM:
+        pref = [CHAR_LOWER, CHAR_NUMBERS, CHAR_UPPER];
+        break;
+      case CHAR_LETTERS:
+        pref = [CHAR_LOWER, CHAR_UPPER];    
+        break;
+        
+      // Mixes of three types
+      case CHAR_LETTERS | CHAR_SYMBOLS:
+        pref = [CHAR_LOWER, CHAR_SYMBOLS, CHAR_UPPER];
+        break;
+      case CHAR_LOWER | CHAR_NUMBERS | CHAR_SYMBOLS:
+        pref = [CHAR_LOWER, CHAR_NUMBERS, CHAR_SYMBOLS];
+        break;
+      case CHAR_UPPER | CHAR_NUMBERS | CHAR_SYMBOLS:
+        pref = [CHAR_UPPER, CHAR_NUMBERS, CHAR_SYMBOLS];
+        break;
+        
+      // Mixes of two types  
+      case CHAR_LOWER | CHAR_NUMBERS:
+        pref = [CHAR_LOWER, CHAR_NUMBERS];
+        break;
+      case CHAR_LOWER | CHAR_SYMBOLS:
+        pref = [CHAR_LOWER, CHAR_SYMBOLS];
+        break;
+      case CHAR_UPPER | CHAR_NUMBERS:
+        pref = [CHAR_UPPER, CHAR_NUMBERS];
+        break;
+      case CHAR_UPPER | CHAR_SYMBOLS:
+        pref = [CHAR_UPPER, CHAR_SYMBOLS];
+        break;
+      case CHAR_NUMBERS | CHAR_SYMBOLS:
+        pref = [CHAR_NUMBERS, CHAR_SYMBOLS];
+        break;      
+    }
+print('prefs: ' + pref.toString());
+    return pref;
   }
 }

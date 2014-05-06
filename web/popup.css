@@ -3,8 +3,8 @@ body {
   background-color: #F8F8F8;
   font-family: 'Open Sans', sans-serif;
   text-align: center;
-  font-size: 10pt;
-  width: 200px;
+  font-size: 8pt;
+  width: 250px;
   padding: 0px;
 }
 
@@ -29,50 +29,49 @@ h1 {
 }
 
 #submit {
-  padding: 8px;
-  margin: 8px;
+  padding: 8px 24px;
+  margin: 8px;  
 }
 
 #error {
   background-color: #fcc;
   margin: 8px;
   padding: 8px;
+  font-size: 10pt;
 }
 
 #result {
   background-color: #cfc;
   margin: 8px;
   padding: 8px;
+  font-size: 10pt;
+}
+
+#mainInputs {  
+  width: 100%;
+  margin: 4px;
+  padding: 4px;
 }
 
 #passOptions {
-  width: 100%; 
-  font-size: 8pt;
+  width: 100%;
+  margin-bottom: 8px;
 }
 
-th {
-  text-align: right;
-  padding: 0px;
-  margin: 0px;
-  width: 50%;
+#separator {
+  border-bottom: 1px solid #b92;
+  margin: 4px;
 }
 
-td {
-  padding: 0px;
-  margin: 0px;
-  text-align: left;
-  width: 50%;
-}
-
-
-.hasTooltip {
+.tooltipContainer {
     position:relative;
 }
-.hasTooltip span {
+.tooltip {
     display:none;
+    text-align: left;
 }
 
-.hasTooltip:hover span {
+.tooltipContainer:hover .tooltip {
     display: inline-block;
     background-color: #fea;
     border-radius:5px;

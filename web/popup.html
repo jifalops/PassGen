@@ -11,22 +11,48 @@
       <h1>PassGen</h1>           
       <form id='form'>
         <div id='error'></div>
-        <input id='site'    type='text'     placeholder="www.example.com" /><br />
-        <input id='secret'  type='password' placeholder="secret"         /><br />
-        <table id='passOptions'> 
-          <tr><th><input id='saveSecret' type='checkbox' /></th>
-            <td>Save
-            <span class='hasTooltip'>
-              <img id='info' src='images/info12.png' />
-              <span id='securityWarning'>
-                The secret is encrypted, but anyone with access to this computer may be able to view and decrypt it.
+        <table id='mainInput'>
+          <tr>
+            <td class='left'><input id='site' type='text' placeholder="www.example.com" /></td>
+            <td class='right'>
+              <input id='autoHost' type='checkbox' checked />Auto
+              <span class='tooltipContainer'>
+                <img src='images/info12.png' />
+                <span class='tooltip'>
+                  Auto-choose the number of domain levels to include. Uncheck to use all.
+                </span>
+              </span>      
+            </td>
+          </tr>
+          <tr>
+            <td class='left'><input id='secret' type='password' placeholder="secret" /></td>
+            <td class='right'>
+              <input id='saveSecret' type='checkbox' />Save
+              <span class='tooltipContainer'>
+                <img src='images/info12.png' />
+                <span class='tooltip'>
+                  The secret is encrypted, but anyone with access to this computer may be able to view and decrypt it.
+                </span>
               </span>
-            </span></td>
-          </tr>         
-          <tr><th><input id='symbols' type="checkbox" checked /></th><td>Symbols</td></tr>        
-          <tr><th><select id ='passLen'></select></th><td>Length</td></tr>
-        </table>
-        
+            </td>
+          </tr>
+        </table>    
+        <div id='separator'></div>   
+        <table id='passOptions'>   
+          <tr>
+            <td><input id='lower' type="checkbox" checked /></td>
+            <td><input id='upper' type="checkbox" checked /></td>
+            <td><input id='numbers' type="checkbox" checked /></td>
+            <td><input id='symbols' type="checkbox" checked /></td>
+          </tr>
+          <tr>
+            <td>Lower</td>
+            <td>Upper</td>
+            <td>Numbers</td>
+            <td>Symbols</td>
+          </tr>
+        </table>    
+        Length<select id ='passLen'></select>    
         <input id='submit'  type='submit'   value='Generate Password'     /><br />        
         <div id='result'></div>
       </form>

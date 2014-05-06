@@ -25,29 +25,42 @@ const int
 const String
   _DB_NAME         = "PassGen",
   _DB_STORE        = "state",
-  _KEY_PASS_LEN    = "passLen",
-  _KEY_USE_SYMBOLS = "useSymbols",    
+  _KEY_PASS_LEN    = "passLen",    
   _KEY_SECRET      = "secret",
-  _KEY_SAVE_SECRET = "saveSecret";
+  _KEY_SAVE_SECRET = "saveSecret",
+  _KEY_AUTO_HOST   = "autoHost",
+  _KEY_USE_LOWER   = "useLower",
+  _KEY_USE_UPPER   = "useUpper",
+  _KEY_USE_NUMBERS = "useNumbers",
+  _KEY_USE_SYMBOLS = "useSymbols";
+ 
+final List<String> _TOP_LEVEL_DOMAINS = [
+  'com', 'org', 'net', 'int', 'edu', 'gov', 'mil',
+  'biz', 'info', 'mobi', 'name', 'wiki', 'xxx'
+];
   
 
 final DivElement           _container  = querySelector('#PassGen');  
 final FormElement          _form       = querySelector('#form');
 final DivElement           _error      = querySelector('#error');
-final CheckboxInputElement _symbols    = querySelector('#symbols');
 final Element              _result     = querySelector('#result');
 final TextInputElement     _site       = querySelector('#site');
 final TextInputElement     _secret     = querySelector('#secret');
 final CheckboxInputElement _saveSecret = querySelector('#saveSecret');
 final SelectElement        _passLength = querySelector('#passLen');
+final CheckboxInputElement _autoHost   = querySelector('#autoHost');
+final CheckboxInputElement _lower      = querySelector('#lower');
+final CheckboxInputElement _upper      = querySelector('#upper');
+final CheckboxInputElement _numbers    = querySelector('#numbers');
+final CheckboxInputElement _symbols    = querySelector('#symbols');
 
 final Store _store = new Store(_DB_NAME, _DB_STORE);
 final PassGen _pg = new PassGen();
 
 int _passLen = 16;
 
-void main() {
-  // DOM is fully loaded.
+void main() {             
+  // DOM is fully loaded.         
   _error.hidden = true;
   _result.hidden = true;
   
@@ -64,7 +77,14 @@ void main() {
       _store.removeByKey(_KEY_SECRET);
     }
   }));
+  _lower.onChange.listen((e) => _store.open().then((_) => _store.save(_lower.checked.toString(), _KEY_USE_LOWER)));
+  _upper.onChange.listen((e) => _store.open().then((_) => _store.save(_upper.checked.toString(), _KEY_USE_UPPER)));
+  _numbers.onChange.listen((e) => _store.open().then((_) => _store.save(_numbers.checked.toString(), _KEY_USE_NUMBERS)));
   _symbols.onChange.listen((e) => _store.open().then((_) => _store.save(_symbols.checked.toString(), _KEY_USE_SYMBOLS)));
+  _autoHost.onChange.listen((e) => _store.open().then((_) {
+    _prefillWebsite();
+    _store.save(_autoHost.checked.toString(), _KEY_AUTO_HOST);    
+  }));
   _passLength.onChange.listen((e) => _store.open().then((_) {
     _store.save(_passLength.value, _KEY_PASS_LEN);
     _passLen = int.parse(_passLength.value);
@@ -80,8 +100,13 @@ void _onSubmitted(Event e) {
   
   int errno = checkInputs();
   if (errno == _ERR_NONE) {
-    String chars = _symbols.checked ? PassGen.CHARS : PassGen.ALNUM;
-    _result.text = _pg.hashAndConvert(_site.value + _secret.value, _passLen, chars.split(''));
+    int charTypes = 0;
+    if (_lower.checked) charTypes |= PassGen.CHAR_LOWER;
+    if (_upper.checked) charTypes |= PassGen.CHAR_UPPER;
+    if (_numbers.checked) charTypes |= PassGen.CHAR_NUMBERS;
+    if (_symbols.checked) charTypes |= PassGen.CHAR_SYMBOLS;    
+print('charTypes: ' + charTypes.toString());
+    _result.text = _pg.hashAndConvert(_site.value + _secret.value, _passLen, charTypes);
     _result.hidden = false;
     window.getSelection().selectAllChildren(_result);
   } else {
@@ -99,12 +124,16 @@ void _saveState() {
     .then((_) => _store.nuke())
     .then((_) => _store.save(_passLength.value, _KEY_PASS_LEN))
     .then((_) => _store.save(_saveSecret.checked.toString(), _KEY_SAVE_SECRET))
-    .then((_) => _store.save(_symbols.checked.toString(), _KEY_USE_SYMBOLS)
+    .then((_) => _store.save(_lower.checked.toString(), _KEY_USE_LOWER))
+    .then((_) => _store.save(_upper.checked.toString(), _KEY_USE_UPPER))
+    .then((_) => _store.save(_numbers.checked.toString(), _KEY_USE_NUMBERS))
+    .then((_) => _store.save(_symbols.checked.toString(), _KEY_USE_SYMBOLS))
+    .then((_) => _store.save(_autoHost.checked.toString(), _KEY_AUTO_HOST))
     .then((_) {
       if (_saveSecret.checked && _store.isOpen) {
         _doSaveSecret();
       }
-    }));
+    });
 }
 
 void _loadState() {
@@ -114,9 +143,25 @@ void _loadState() {
       if (value != null) _passLen = int.parse(value);
     })
     .then((_) => _addLengthOptions())
+    .then((_) => _store.getByKey(_KEY_USE_LOWER))
+    .then((value) {
+      if (value != null) _lower.checked = value == true.toString();
+    })
+    .then((_) => _store.getByKey(_KEY_USE_UPPER))
+    .then((value) {
+      if (value != null) _upper.checked = value == true.toString();
+    })
+    .then((_) => _store.getByKey(_KEY_USE_NUMBERS))
+    .then((value) {
+      if (value != null) _numbers.checked = value == true.toString();
+    })
     .then((_) => _store.getByKey(_KEY_USE_SYMBOLS))
     .then((value) {
       if (value != null) _symbols.checked = value == true.toString();
+    })
+    .then((_) => _store.getByKey(_KEY_AUTO_HOST))
+    .then((value) {
+      if (value != null) _autoHost.checked = value == true.toString();
     })
     .then((_) => _store.getByKey(_KEY_SAVE_SECRET))
     .then((value) {      
@@ -152,7 +197,19 @@ void _prefillWebsite() {
       if (tabs.length != 1) {
         showError(_ERR_TAB_COUNT, tabs.length);
       }
-      _site.value = Uri.parse(tabs[0].url).host;
+      
+      String host = Uri.parse(tabs[0].url).host; 
+      var parts = host.split('.');
+      var len = parts.length;
+      
+      if (_autoHost.checked && len > 2) {        
+        int offset = 3;
+        if (_TOP_LEVEL_DOMAINS.contains(parts.last)) {
+          offset = 2;
+        }      
+        host = parts.getRange(len - offset, len).join('.');        
+      }
+      _site.value = host;
     });
   } catch(e) {
     showError(_ERR_UNKNOWN_HOST);
