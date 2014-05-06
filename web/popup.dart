@@ -51,7 +51,6 @@ void main() {
   _error.hidden = true;
   _result.hidden = true;
   
-  _addLengthOptions();
   _loadState();
   _prefillWebsite();
   _secret.focus();
@@ -77,7 +76,7 @@ void _onSubmitted(Event e) {
   _error.hidden = true;
   _result.hidden = true;
     
-  //_saveState();
+  _saveState();
   
   int errno = checkInputs();
   if (errno == _ERR_NONE) {
@@ -111,18 +110,24 @@ void _saveState() {
 void _loadState() {
   _store.open()
     .then((_) => _store.getByKey(_KEY_PASS_LEN))
-    .then((value) => _passLen = int.parse(value))
+    .then((value) {
+      if (value != null) _passLen = int.parse(value);
+    })
     .then((_) => _addLengthOptions())
     .then((_) => _store.getByKey(_KEY_USE_SYMBOLS))
-    .then((value) => _symbols.checked = value == true.toString())
-    .then((_) => _store.getByKey(_KEY_SAVE_SECRET))
     .then((value) {
-      _saveSecret.checked = value == true.toString();
-      if (value == true.toString() && _store.isOpen) {
+      if (value != null) _symbols.checked = value == true.toString();
+    })
+    .then((_) => _store.getByKey(_KEY_SAVE_SECRET))
+    .then((value) {      
+      if (value != null) _saveSecret.checked = value == true.toString();
+      if (_saveSecret.checked) {
         _store.getByKey(_KEY_SECRET)
-          .then((value) => _secret.value = _pg.cipher(value, false));
+          .then((value) {
+            if (value != null) _secret.value = _pg.cipher(value, false);
+        });
       }
-    });   
+    });
 }
 
 void _addLengthOptions() {
