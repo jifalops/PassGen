@@ -20,7 +20,8 @@ const int
     _ERR_SECRET_SHORT  = 5,
     _ERR_SECRET_LONG   = 6,
     _ERR_GENPASS_SHORT = 7,
-    _ERR_GENPASS_LONG  = 8;    
+    _ERR_GENPASS_LONG  = 8,
+    _ERR_AUTOFILL_PASS = 9;
 
 const String
   _DB_NAME         = "PassGen",
@@ -43,7 +44,7 @@ final List<String> _TOP_LEVEL_DOMAINS = [
 final DivElement           _container  = querySelector('#PassGen');  
 final FormElement          _form       = querySelector('#form');
 final DivElement           _error      = querySelector('#error');
-final Element              _result     = querySelector('#result');
+final DivElement           _result     = querySelector('#result');
 final TextInputElement     _site       = querySelector('#site');
 final TextInputElement     _secret     = querySelector('#secret');
 final CheckboxInputElement _saveSecret = querySelector('#saveSecret');
@@ -53,6 +54,9 @@ final CheckboxInputElement _lower      = querySelector('#lower');
 final CheckboxInputElement _upper      = querySelector('#upper');
 final CheckboxInputElement _numbers    = querySelector('#numbers');
 final CheckboxInputElement _symbols    = querySelector('#symbols');
+final SpanElement          _autofill   = querySelector('#autofill');
+final SpanElement          _autofillResults     = querySelector('#autofillResults');
+final DivElement           _autofillContainer   = querySelector('#autofillContainer');
 
 final Store _store = new Store(_DB_NAME, _DB_STORE);
 final PassGen _pg = new PassGen();
@@ -63,12 +67,17 @@ void main() {
   // DOM is fully loaded.         
   _error.hidden = true;
   _result.hidden = true;
+  _autofillContainer.hidden = true;
   
   _loadState();
   _prefillWebsite();
   _secret.focus();
   
   _form.onSubmit.listen(_onSubmitted);
+  
+  
+  _autofill.onClick.listen(_onAutofill);
+  
   _saveSecret.onChange.listen((e) => _store.open().then((_) {
     _store.save(_saveSecret.checked.toString(), _KEY_SAVE_SECRET);
     if (_saveSecret.checked) {
@@ -95,7 +104,8 @@ void _onSubmitted(Event e) {
   e.preventDefault();
   _error.hidden = true;
   _result.hidden = true;
-    
+  _autofillContainer.hidden = true;
+  
   _saveState();
   
   int errno = checkInputs();
@@ -108,10 +118,30 @@ void _onSubmitted(Event e) {
 print('charTypes: ' + charTypes.toString());
     _result.text = _pg.hashAndConvert(_site.value + _secret.value, _passLen, charTypes);
     _result.hidden = false;
+    _autofillContainer.hidden = false;
     window.getSelection().selectAllChildren(_result);
   } else {
     showError(errno);
   }
+}
+
+void _onAutofill(Event e) {
+  final String pass = _result.text;
+  try {
+    chrome.tabs.executeScript(new chrome.InjectDetails(
+      code: 
+'''
+      var inputs = document.getElementsByTagName("input");    
+      for (var i=0; i<inputs.length; i++) {
+        if (inputs[i].type.toLowerCase() == "password" && inputs[i].value.length == 0) {
+          inputs[i].value = "$pass";
+        }
+      }
+'''      
+    )).then((_) => window.getSelection().selectAllChildren(_result));
+  } catch(e) {
+    showError(_ERR_AUTOFILL_PASS);
+  } 
 }
 
 void _doSaveSecret() {
@@ -264,6 +294,9 @@ void showError(int errno, [var arg1]) {
       break;
     case _ERR_GENPASS_LONG:
       err = 'Generated password too long.';          
+      break;
+    case _ERR_AUTOFILL_PASS:
+      err = 'Unable to autofill password.';          
       break;
     default:
       print('showError(): Unkown errno.');
