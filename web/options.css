@@ -1,0 +1,20 @@
+body {
+  background-color: #F8F8F8;
+  font-family: 'Open Sans', sans-serif;
+  text-align: center;
+  font-size: 10pt;
+  width: 200px;
+  padding: 0px;
+}
+
+#showLength:parent {
+  background-color: #f00
+}
+
+#showSaveSecret {
+  
+}
+
+#passVersion {
+  
+}

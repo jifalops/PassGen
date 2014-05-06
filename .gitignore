@@ -1,6 +1,7 @@
 # Files created by pub, Dart Editor, and dart2js
 packages/
-pubspec.lock  // Except for application packages
+build/
+pubspec.lock
 .project
 .buildlog
 *.js_

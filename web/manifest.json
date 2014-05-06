@@ -7,9 +7,9 @@
 
   "browser_action": {
     "default_icon": "images/lock16.png",
-    "default_popup": "passgen.html",
+    "default_popup": "popup.html",    
     "default_badge": "PG"
-  },
+  },  
   
   "icons": {
     "128": "images/lock128.png",
