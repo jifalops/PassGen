@@ -61,9 +61,9 @@ final DivElement           _autofillContainer   = querySelector('#autofillContai
 final Store _store = new Store(_DB_NAME, _DB_STORE);
 final PassGen _pg = new PassGen();
 
-int _passLen = 16;
+int _passLen = 12;
 
-void main() {             
+void main() {              
   // DOM is fully loaded.         
   _error.hidden = true;
   _result.hidden = true;

@@ -3,7 +3,7 @@
 
   "name": "PassGen",
   "description": "A simple offline password generator",
-  "version": "0.7.1",
+  "version": "0.7.2",
 
   "browser_action": {
     "default_icon": "images/lock16silver.png",
